@@ -31,8 +31,6 @@ if(!window[PrevSaveName]){
 	}else{
 		window[PrevSaveName]=eval(val+";"+PrevSaveName);
 	};
-}else{
-	$(".DataTxt").val(PrevSaveName+"="+JSON.stringify(window[PrevSaveName],null,"\t"));
 };
 var StatsGovData=window[PrevSaveName];
 var cityList=StatsGovData.cityList;
@@ -75,22 +73,19 @@ var fixParent={
 	,4690:{name:"省直辖县级行政区划"}//海南省
 	,6590:{name:"自治区直辖县级行政区划"}//新疆
 };
-//人工修正数据，mca新数据已撤销的市，统计局滞后
+//人工修正数据，移除统计局或者mca的数据，mca新数据已撤销的市，统计局滞后
 var fixRemove={
-	140703:{name:"太谷区"} //暂时阻止添加新的区，暂用老的140726太谷县，方便后续处理，等统一使用后再添加进去
-	,340281:{name:"无为市"} //暂时阻止添加新的区，暂用老的340225无为县
-	,451082:{name:"平果市"} //暂时阻止添加新的区，暂用老的451023平果县
-	,530481:{name:"澄江市"} //暂时阻止添加新的区，暂用老的530422澄江县
-	,630106:{name:"湟中区"} //暂时阻止添加新的区，暂用老的630122湟中县
-	,652902:{name:"库车市"} //暂时阻止添加新的区，暂用老的652923库车县
-	
-	,360113:{name:"红谷滩区"} //暂时阻止添加新的区，方便后续处理，免得别的地方有撤销合并
-	,659010:{name:"胡杨河市"} //暂时阻止添加新的区
+	340203:{name:"弋江区"}, //统计局老的id移除掉，新id为340209
+	320602:{name:"崇川区"}, //统计局老的id移除掉，新id为320613
 	
 	//移除单独的港澳台，mca这些没有下级并且统计局没有这些
-	,71:{name:"台湾省"}
+	71:{name:"台湾省"}
 	,81:{name:"香港特别行政区"}
 	,82:{name:"澳门特别行政区"}
+};
+//人工修正数据，mca新数据已改名，统计局滞后
+var fixRename={
+	//130502:{name:"襄都区"}
 };
 //构造成统一格式
 var list=[];
@@ -153,10 +148,20 @@ function merge(arr1,arr2,deep){
 		for(var j=0;j<arr2.length;j++){
 			var oj=arr2[j];
 			if(oiCode==oj.code && oi.name!=oj.name){
-				console.error("名称不同",oi,oj);
-				throw new Error();
+				var rename=fixRename[oiCode];
+				if(rename && rename.name==oj.name){
+					rename.fix=true;
+					console.log("改名项",oi,"->",oj);
+					oi.name=oj.name;
+				}else{
+					console.error("名称不同",oi,oj);
+					throw new Error();
+				};
 			};
 			if(oi.name==oj.name && oiCode!=oj.code){
+				if(fixRemove[oiCode] || fixRemove[oj.code]){
+					continue;//是要移除的
+				}
 				console.error("编号不同",oi,oj);
 				throw new Error();
 			};
@@ -224,6 +229,12 @@ if(notfindsIgnore.length){
 for(var k in fixRemove){
 	if(!fixRemove[k].fix){
 		console.error("存在未被匹配的预定义fixRemove",k,fixRemove[k]);
+		throw new Error();
+	};
+};
+for(var k in fixRename){
+	if(!fixRename[k].fix){
+		console.error("存在未被匹配的预定义fixRename",k,fixRename[k]);
 		throw new Error();
 	};
 };
